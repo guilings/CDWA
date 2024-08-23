@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Application</title>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript">
+        document.addEventListener("DOMContentLoaded", function() {
+            var server_url = "{{ server_url }}";
+            var username = "{{ username }}";
+            var password = "{{ password }}";
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+            socket.on('connect', function() {
+                console.log('Connected to server');
+                socket.emit('authenticate', {username: username});
+            });
+
+            socket.on('authenticated', function(data) {
+                if (data.status === 'authenticated') {
+                    console.log('User authenticated');
+                } else {
+                    console.log('Authentication failed');
+                }
+            });
+
+            socket.on('message', function(data) {
+                var messageBox = document.getElementById('messages');
+                var message = document.createElement('p');
+                message.innerHTML = `<strong>${data.username}</strong>: ${data.message}`;
+                messageBox.appendChild(message);
+            });
+
+            socket.on('history', function(data) {
+                var messageBox = document.getElementById('messages');
+                messageBox.innerHTML = '';  // Clear existing messages
+                var messages = data.messages;
+                messages.forEach(function(msg) {
+                    var message = document.createElement('p');
+                    message.innerHTML = msg;
+                    messageBox.appendChild(message);
+                });
+            });
+
+            document.getElementById('sendButton').addEventListener('click', function() {
+                var inputField = document.getElementById('inputField');
+                var message = inputField.value;
+                if (message) {
+                    socket.emit('message', {username: username, message: message});
+                    inputField.value = '';
+                }
+            });
+
+            document.getElementById('getHistoryButton').addEventListener('click', function() {
+                socket.emit('get_history');
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Welcome to the Chat Application</h1>
+    <div id="messages" style="border:1px solid #ccc; height:300px; overflow-y:scroll; padding:10px;"></div>
+    <input type="text" id="inputField" placeholder="Type a message...">
+    <button id="sendButton">Send</button>
+    <button id="getHistoryButton">Get History</button>
+</body>
+</html>
